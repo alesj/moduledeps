@@ -3,6 +3,8 @@ package org.jboss.moduledeps;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -12,9 +14,9 @@ import java.util.TreeSet;
 
 /**
  * @author <a href="mailto:ales.justin@jboss.org">Ales Justin</a>
+ * @author <a href="mailto:mlazar@redhat.com">Matej Lazar</a>
  */
 public class Modules {
-    private PrintStream out = System.out;
     private Map<ModuleIdentifier, Module> modules = new LinkedHashMap<ModuleIdentifier, Module>();
 
     private Modules() {
@@ -29,44 +31,39 @@ public class Modules {
         return m;
     }
 
-    public void print(ModuleIdentifier mi) {
-        Module module = modules.get(mi);
-        out.println(module != null ? module : "No such module: " + mi);
+    public Module getModule(ModuleIdentifier mi) {
+        return modules.get(mi);
     }
 
-    public void transitive(ModuleIdentifier mi) {
-        Module module = modules.get(mi);
+    public List<Module> transitive(ModuleIdentifier mi) {
+    	List<Module> modulesList = new ArrayList<Module>();
+    	Module module = modules.get(mi);
         if (module != null) {
-            out.println(module);
+            modulesList.add(module);
             Set<ModuleIdentifier> visited = new HashSet<ModuleIdentifier>();
             List<Module> transitive = new ArrayList<Module>();
             recurse(module, visited, transitive);
-            out.println("Dependencies = " + transitive.size());
-            for (Module t : transitive) {
-                out.println(t);
-            }
-        } else {
-            out.println("No such module: " + mi);
+            modulesList.addAll(transitive);
         }
+        return modulesList;
     }
 
-    public void all(ModuleIdentifier mi) {
+    public Set<Module> all(ModuleIdentifier mi) {
+    	Set<Module> moduleSet = new HashSet<Module>();
         Module module = modules.get(mi);
         if (module != null) {
-            out.println(module);
+        	moduleSet.add(module);
             Set<ModuleIdentifier> visited = new HashSet<ModuleIdentifier>();
-            Set<ModuleIdentifier> transitive = new TreeSet<ModuleIdentifier>();
+            Set<Module> transitive = new TreeSet<Module>();
             recurse(module, visited, transitive);
-            out.println("Dependencies = " + transitive.size());
-            for (ModuleIdentifier t : transitive) {
-                out.println("\t" + t);
-            }
-        } else {
-            out.println("No such module: " + mi);
+            for (Module transitiveModule : transitive) {
+                moduleSet.add(transitiveModule);
+			}
         }
+        return moduleSet;
     }
 
-    private void recurse(Module module, Set<ModuleIdentifier> visited, List<Module> transitive) {
+    private void recurse(Module module, Set<ModuleIdentifier> visited, Collection<Module> transitive) {
         for (ModuleIdentifier dep : module.getDependencies()) {
             if (visited.add(dep)) {
                 Module tm = modules.get(dep);
@@ -74,23 +71,13 @@ public class Modules {
                     transitive.add(tm);
                     recurse(tm, visited, transitive);
                 } else {
-                    out.println("No such transitive module in '" + module.getModule() + "' -- " + dep + "\n");
+                	transitive.add(new MissingModule(dep));
                 }
             }
         }
     }
-
-    private void recurse(Module module, Set<ModuleIdentifier> visited, Set<ModuleIdentifier> transitive) {
-        for (ModuleIdentifier dep : module.getDependencies()) {
-            if (visited.add(dep)) {
-                Module tm = modules.get(dep);
-                if (tm != null) {
-                    transitive.add(tm.getModule());
-                    recurse(tm, visited, transitive);
-                } else {
-                    out.println("No such transitive module in '" + module.getModule() + "' -- " + dep + "\n");
-                }
-            }
-        }
-    }
+    
+	public Collection<ModuleIdentifier> getIdentifiers() {
+		return modules.keySet();
+	}
 }
