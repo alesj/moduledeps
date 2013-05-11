@@ -10,6 +10,12 @@ import java.util.Set;
 import com.beust.jcommander.JCommander;
 
 /**
+ * Example run arguments:
+ *   -mp /home/matej/run/jboss/CapeDwarf_AS7_1.0.0.Beta4/modules 
+ *   -a 
+ *   -mip /home/matej/java/workspaces/jboss-as/capedwarf-jboss-as-prj/build/src/main/resources/modules
+ *   -diff /home/matej/run/jboss/jboss-as-7.1.1.Final/modules
+ * 
  * @author <a href="mailto:ales.justin@jboss.org">Ales Justin</a>
  * @author <a href="mailto:mlazar@redhat.com">Matej Lazar</a>
  */
@@ -19,10 +25,10 @@ public class Main {
     	Options options = new Options();
 		new JCommander(options, args);
     	
-    	List<File> repoModuleXmls = new ArrayList<File>();
-    	findFromPaths(repoModuleXmls, options.modulePaths);
+    	List<File> pathsModuleXmls = new ArrayList<File>();
+    	findFromPaths(pathsModuleXmls, options.modulePaths);
     	
-        Modules repoModules = Modules.build(repoModuleXmls);
+        Modules repoModules = Modules.build(pathsModuleXmls);
 
         List<ModuleIdentifier> sourceModuleIdentifiers = new ArrayList<ModuleIdentifier>();
         if (options.moduleIdentifiers.size() > 0) {
@@ -34,42 +40,52 @@ public class Main {
         
         ModuleDeps moduleDeps = new ModuleDeps(repoModules, sourceModuleIdentifiers); 
         
-        Collection<Module> modules;
+        Collection<Module> sourceModules;
         if (options.transitive) {
-        	modules = moduleDeps.transitive();
+        	sourceModules = moduleDeps.transitive();
         } else if (options.all) {
-        	modules = moduleDeps.all();
+        	sourceModules = moduleDeps.all();
         } else {
-        	modules = moduleDeps.identified();
+        	sourceModules = moduleDeps.identified();
         }
         
     	OutputFormater out = new OutputFormater(System.out);
+    	out.printIdentifier(true);
+    	out.printPath(true);
+    	out.printDependencies(false);
         
+    	int numRequiredModules = sourceModules.size();
+    	int numBaseModules = 0;
+    	
         if (options.baseModulePaths.size() > 0) {
         	List<File> baseModuleXmls = new ArrayList<File>();
-        	findFromPaths(repoModuleXmls, options.baseModulePaths);
+        	findFromPaths(baseModuleXmls, options.baseModulePaths);
         	
             Modules baseModules = Modules.build(baseModuleXmls);
-        	ModuleDeps baseModuleDeps = new ModuleDeps(baseModules, sourceModuleIdentifiers);
-        	
-        	List<Module> baseModulesTransitive = baseModuleDeps.transitive();
-        	modules.removeAll(baseModulesTransitive);
+            numBaseModules = baseModules.getModules().size();
+            
+        	sourceModules.removeAll(baseModules.getModules());
         }
-    	out.print(modules);
+    	out.print(sourceModules);
+    	
+    	System.out.println("Stats:");
+    	System.out.println("Initialy required modules with dependencies:" + numRequiredModules); 
+    	System.out.println("Base modules:" + numBaseModules);
+    	System.out.println("Overly modules: " + sourceModules.size());
     }
-
-    private static void addModuleIdentifiersFromPaths(List<ModuleIdentifier> mis, List<String> moduleIdentifiersPath) throws Exception {
-    	List<File> moduleXmls = new ArrayList<File>();
-    	findFromPaths(moduleXmls, moduleIdentifiersPath);
-    	Modules modules = Modules.build(moduleXmls);
-    	mis.addAll(modules.getIdentifiers());
-	}
 
 	private static void addModuleIdentifiers(List<ModuleIdentifier> mis, List<String> moduleIdentifiers) {
     	for (String moduleIdentifier : moduleIdentifiers) {
 			mis.add(ModuleIdentifier.create(moduleIdentifier));
 		}
 	}
+
+	private static void addModuleIdentifiersFromPaths(List<ModuleIdentifier> mis, List<String> moduleIdentifiersPath) throws Exception {
+	    List<File> moduleXmls = new ArrayList<File>();
+	    findFromPaths(moduleXmls, moduleIdentifiersPath);
+	    Modules modules = Modules.build(moduleXmls);
+	    mis.addAll(modules.getIdentifiers());
+    }
 
 	private static List<File> parsePaths(List<String> modulePaths) {
     	List<File> paths = new ArrayList<File>();
@@ -89,8 +105,8 @@ public class Main {
         }
     }
 
-	private static void findFromPaths(List<File> moduleXmls, List<String> moduleIdentifiersPath) {
-		List<File> modulePaths = parsePaths(moduleIdentifiersPath);
+	private static void findFromPaths(List<File> moduleXmls, List<String> modulePathsString) {
+		List<File> modulePaths = parsePaths(modulePathsString);
         for (File mp : modulePaths) {
             find(mp, moduleXmls);
 		}

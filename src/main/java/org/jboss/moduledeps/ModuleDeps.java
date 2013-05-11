@@ -18,7 +18,7 @@ public class ModuleDeps {
 	public List<Module> transitive() {
         List<Module> modules = new ArrayList<Module>();
 	    for (ModuleIdentifier mi : moduleIdentifiers) {
-	    	modules = repoModules.transitive(mi);
+	    	modules.addAll(repoModules.transitive(mi));
 	    }
 	    return modules;
 	}
@@ -26,7 +26,7 @@ public class ModuleDeps {
 	public Set<Module> all() {
         Set<Module> modules = new HashSet<Module>();
 	    for (ModuleIdentifier mi : moduleIdentifiers) {
-	    	modules = repoModules.all(mi);
+	    	modules.addAll(repoModules.all(mi));
 	    }
 	    return modules;
 	}

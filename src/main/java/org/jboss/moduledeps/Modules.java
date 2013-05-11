@@ -54,7 +54,7 @@ public class Modules {
         if (module != null) {
         	moduleSet.add(module);
             Set<ModuleIdentifier> visited = new HashSet<ModuleIdentifier>();
-            Set<Module> transitive = new TreeSet<Module>();
+            Set<Module> transitive = new HashSet<Module>();
             recurse(module, visited, transitive);
             for (Module transitiveModule : transitive) {
                 moduleSet.add(transitiveModule);
@@ -79,5 +79,9 @@ public class Modules {
     
 	public Collection<ModuleIdentifier> getIdentifiers() {
 		return modules.keySet();
+	}
+
+	public Collection<Module> getModules() {
+		return modules.values();
 	}
 }
