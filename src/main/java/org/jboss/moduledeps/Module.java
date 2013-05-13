@@ -1,5 +1,7 @@
 package org.jboss.moduledeps;
 
+import java.io.File;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -9,6 +11,8 @@ import java.util.Set;
 public class Module {
     private ModuleIdentifier module;
     private Set<ModuleIdentifier> dependencies = new LinkedHashSet<ModuleIdentifier>();
+	private Set<String> resources = new HashSet<String>();
+	private File path;
 
     public Module(ModuleIdentifier module) {
         this.module = module;
@@ -35,21 +39,35 @@ public class Module {
 
         if (!module.equals(module1.module)) return false;
 
+        if (resources.size() > 0) {
+        	return compareResources(module1.resources);
+        }
         return true;
     }
 
-    @Override
+    private boolean compareResources(Set<String> otherResources) {
+		return resources.equals(otherResources);
+	}
+
+	@Override
     public int hashCode() {
         return module.hashCode();
     }
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder("\nModule: " + module + "\n");
-        builder.append("Dependencies: ").append(dependencies.size()).append("\n");
-        for (ModuleIdentifier dep : dependencies) {
-            builder.append("\t").append(dep).append("\n");
-        }
-        return builder.toString();
+        return "Module: " + module + "";
     }
+
+	public void addResourceRootPath(String resourceRootPath) {
+		resources.add(resourceRootPath);
+	}
+
+	public void setPath(File path) {
+		this.path = path;
+	}
+	
+	public File getPath() {
+		return path;
+	}
 }
