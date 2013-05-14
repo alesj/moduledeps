@@ -3,6 +3,8 @@ package org.jboss.moduledeps;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -20,7 +22,7 @@ public class ModuleParser {
             ModuleIdentifier main = getModuleIdentifier(root);
             Module module = new Module(main);
             module.setPath(moduleXml);
-            parseResourceRoot(root, module);
+            parseResourceRoots(root, module);
             Element dependencies = XmlUtils.getChildElement(root, "dependencies");
             if (dependencies != null) {
                 for (Element dependency :XmlUtils.getElements(dependencies, "module")) {
@@ -33,9 +35,9 @@ public class ModuleParser {
         }
     }
 
-	private static void parseResourceRoot(Element root, Module module) {
-		String resourceRootPath = getResourceRootPath(root);
-		if (resourceRootPath != null) {
+	private static void parseResourceRoots(Element root, Module module) {
+		List<String> resourceRootPaths = getResourceRootPaths(root);
+		for (String resourceRootPath : resourceRootPaths) {
 			module.addResourceRootPath(resourceRootPath);
 		}
 	}
@@ -44,12 +46,18 @@ public class ModuleParser {
         return new ModuleIdentifier(root.getAttribute("name"), root.getAttribute("slot"));
     }
 
-	private static String getResourceRootPath(Element root) {
+	private static List<String> getResourceRootPaths(Element root) {
+		List<String> resourcePaths = new ArrayList<String>();
 		Element resources = XmlUtils.getChildElement(root, "resources");
 		if (resources == null) {
-			return null;
+			return resourcePaths;
 		}
-		Element resourceRoot = XmlUtils.getChildElement(resources, "resource-root");
-		return resourceRoot != null ? resourceRoot.getAttribute("path") : null;
+		List<Element> resourceRoots = XmlUtils.getElements(resources, "resource-root");
+		for (Element resourceRoot : resourceRoots) {
+			if (resourceRoot != null) {
+				resourcePaths.add(resourceRoot.getAttribute("path"));
+			}
+		}
+		return resourcePaths;
 	}
 }
